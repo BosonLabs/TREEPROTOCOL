@@ -668,10 +668,10 @@ contract MasterChef is Context,Ownable,Initializable {
         updatePool();
         uint256 stakedAmount =(_amount * 90)/100;
         user.amount = user.amount.add(stakedAmount);
-        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         holderUnstakeRemainingTime[msg.sender]= block.timestamp + withdrawLockPeriod;
         bool flag = pool.lpToken.transferFrom(address(msg.sender), address(this), _amount);
         require(flag, "Deposit unsuccessful, hence aborting the transaction !");
+        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         emit Deposit(msg.sender, stakedAmount);
     }
 
@@ -685,7 +685,6 @@ contract MasterChef is Context,Ownable,Initializable {
         require(user.amount >= _amount, "Insufficient balance !");
         updatePool();
         user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         uint256 pending = user.amount.mul(pool.accBlackPerShare).div(1e9).sub(user.rewardDebt);
         if(pending > 0) {
             bool flag = black.transferFrom(communitywallet,msg.sender, pending);
@@ -693,6 +692,7 @@ contract MasterChef is Context,Ownable,Initializable {
         }
         bool flag =  pool.lpToken.transfer(msg.sender, _amount);
         require(flag, "Withdraw unsuccessful, during staking amount transfer, hence aborting the transaction !");
+        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         emit Withdraw(msg.sender, _amount);
     }
 
@@ -747,11 +747,11 @@ contract MasterChef is Context,Ownable,Initializable {
         PoolInfo storage pool = poolInfo;
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
-        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         uint256 pending = user.amount.mul(pool.accBlackPerShare).div(1e9).sub(user.rewardDebt);
         require(pending >= minRewardBalanceToClaim,"reward Limit for claiming not reached"); 
         bool flag = black.transferFrom(communitywallet,msg.sender, pending);
         require(flag, "Claim reward unsuccessful, hence aborting the transaction !");
+        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         emit Withdraw(msg.sender,pending);
    }
    
