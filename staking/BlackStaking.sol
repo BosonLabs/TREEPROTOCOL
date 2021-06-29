@@ -580,7 +580,7 @@ contract MasterChef is Context,Ownable,Initializable {
     uint256 public minRewardBalanceToClaim;
     
     // latest Staking time +  withdrawLockPeriod,  to find when can I unstake
-    mapping(address => uint256) private holderUnstakeRemainingTime;
+    mapping(address => uint256) public holderUnstakeRemainingTime;
     
     // once staking amount reaches maxStakeAmount, then it stores (current block time + stakingLockPeriod)
     mapping (address => uint256) private holderNextStakingAllowedTime;
@@ -668,10 +668,10 @@ contract MasterChef is Context,Ownable,Initializable {
         updatePool();
         uint256 stakedAmount =(_amount * 90)/100;
         user.amount = user.amount.add(stakedAmount);
-        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         holderUnstakeRemainingTime[msg.sender]= block.timestamp + withdrawLockPeriod;
         bool flag = pool.lpToken.transferFrom(address(msg.sender), address(this), _amount);
         require(flag, "Deposit unsuccessful, hence aborting the transaction !");
+        user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
         emit Deposit(msg.sender, stakedAmount);
     }
 
@@ -684,9 +684,11 @@ contract MasterChef is Context,Ownable,Initializable {
         UserInfo storage user = userInfo[msg.sender];
         require(user.amount >= _amount, "Insufficient balance !");
         updatePool();
+        uint256  currentUserBalance=user.amount;
+        uint256 CurrentRewardBalance= user.rewardDebt;
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
-        uint256 pending = user.amount.mul(pool.accBlackPerShare).div(1e9).sub(user.rewardDebt);
+        uint256 pending = currentUserBalance.mul(pool.accBlackPerShare).div(1e9).sub(CurrentRewardBalance);
         if(pending > 0) {
             bool flag = black.transferFrom(communitywallet,msg.sender, pending);
             require(flag, "Withdraw unsuccessful, during reward transfer, hence aborting the transaction !");
@@ -747,8 +749,9 @@ contract MasterChef is Context,Ownable,Initializable {
         PoolInfo storage pool = poolInfo;
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
+        uint256 CurrentRewardBalance= user.rewardDebt;
         user.rewardDebt = user.amount.mul(pool.accBlackPerShare).div(1e9);
-        uint256 pending = user.amount.mul(pool.accBlackPerShare).div(1e9).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accBlackPerShare).div(1e9).sub(CurrentRewardBalance);
         require(pending >= minRewardBalanceToClaim,"reward Limit for claiming not reached"); 
         bool flag = black.transferFrom(communitywallet,msg.sender, pending);
         require(flag, "Claim reward unsuccessful, hence aborting the transaction !");
